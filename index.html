@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>1v1 Basketball Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    canvas { background: #87ceeb; display: block; margin: 0 auto; border: 3px solid #333; }
+    body { text-align: center; font-family: sans-serif; }
+    #scoreboard { margin-top: 10px; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <h1>1v1 Basketball Game 🏀</h1>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div id="scoreboard">Player 1: 0 | Player 2: 0</div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const court = {
+      width: canvas.width,
+      height: canvas.height,
+      floorHeight: canvas.height - 50
+    };
+
+    const playerWidth = 40, playerHeight = 60;
+    const hoop = { x: canvas.width - 60, y: 150, width: 20, height: 10 };
+
+    let score = [0, 0];
+
+    const player1 = {
+      x: 100,
+      y: court.floorHeight - playerHeight,
+      color: "red",
+      left: false,
+      right: false,
+      up: false,
+      speed: 5
+    };
+
+    const player2 = {
+      x: 600,
+      y: court.floorHeight - playerHeight,
+      color: "blue",
+      left: false,
+      right: false,
+      up: false,
+      speed: 5
+    };
+
+    const ball = {
+      x: player1.x + playerWidth / 2,
+      y: player1.y,
+      radius: 10,
+      vx: 0,
+      vy: 0,
+      heldBy: 1,
+      gravity: 0.4,
+      isShooting: false
+    };
+
+    function drawCourt() {
+      ctx.fillStyle = "#4caf50";
+      ctx.fillRect(0, court.floorHeight, court.width, 50);
+
+      ctx.fillStyle = "#000";
+      ctx.fillRect(hoop.x, hoop.y, hoop.width, hoop.height);
+    }
+
+    function drawPlayer(player) {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, playerWidth, playerHeight);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "orange";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function updatePlayers() {
+      if (player1.left) player1.x -= player1.speed;
+      if (player1.right) player1.x += player1.speed;
+      if (player2.left) player2.x -= player2.speed;
+      if (player2.right) player2.x += player2.speed;
+
+      player1.x = Math.max(0, Math.min(court.width - playerWidth, player1.x));
+      player2.x = Math.max(0, Math.min(court.width - playerWidth, player2.x));
+    }
+
+    function updateBall() {
+      if (ball.heldBy === 1) {
+        ball.x = player1.x + playerWidth / 2;
+        ball.y = player1.y;
+      } else if (ball.heldBy === 2) {
+        ball.x = player2.x + playerWidth / 2;
+        ball.y = player2.y;
+      } else {
+        ball.vy += ball.gravity;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        // Bounce on floor
+        if (ball.y + ball.radius > court.floorHeight) {
+          ball.y = court.floorHeight - ball.radius;
+          ball.vy *= -0.6;
+        }
+
+        // Wall collisions
+        if (ball.x - ball.radius < 0 || ball.x + ball.radius > court.width) {
+          ball.vx *= -1;
+        }
+
+        // Score check
+        if (
+          ball.x > hoop.x &&
+          ball.x < hoop.x + hoop.width &&
+          ball.y > hoop.y &&
+          ball.y < hoop.y + hoop.height
+        ) {
+          score[ball.lastShooter - 1]++;
+          updateScoreboard();
+          resetBall();
+        }
+      }
+    }
+
+    function shoot(playerNum) {
+      if (ball.heldBy === playerNum) {
+        ball.heldBy = null;
+        ball.vx = playerNum === 1 ? 5 : -5;
+        ball.vy = -8;
+        ball.lastShooter = playerNum;
+      }
+    }
+
+    function resetBall() {
+      ball.x = player1.x + playerWidth / 2;
+      ball.y = player1.y;
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.heldBy = 1;
+      ball.isShooting = false;
+    }
+
+    function updateScoreboard() {
+      document.getElementById("scoreboard").textContent =
+        `Player 1: ${score[0]} | Player 2: ${score[1]}`;
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawCourt();
+      drawPlayer(player1);
+      drawPlayer(player2);
+      drawBall();
+
+      updatePlayers();
+      updateBall();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Controls
+    document.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "a": player1.left = true; break;
+        case "d": player1.right = true; break;
+        case "ArrowLeft": player2.left = true; break;
+        case "ArrowRight": player2.right = true; break;
+        case "w": shoot(1); break;
+        case "ArrowUp": shoot(2); break;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      switch (e.key) {
+        case "a": player1.left = false; break;
+        case "d": player1.right = false; break;
+        case "ArrowLeft": player2.left = false; break;
+        case "ArrowRight": player2.right = false; break;
+      }
+    });
+
+    resetBall();
+    gameLoop();
+  </script>
+</body>
+</html>
