@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     canvas { background: #87ceeb; display: block; margin: 0 auto; border: 3px solid #333; }
-    body { text-align: center; font-family: sans-serif; }
+    body { text-align: center; font-family: sans-serif; background-color: #f0f0f0; }
     #scoreboard { margin-top: 10px; font-size: 24px; }
   </style>
 </head>
@@ -37,7 +37,6 @@
       color: "red",
       left: false,
       right: false,
-      up: false,
       speed: 5
     };
 
@@ -47,7 +46,6 @@
       color: "blue",
       left: false,
       right: false,
-      up: false,
       speed: 5
     };
 
@@ -59,13 +57,12 @@
       vy: 0,
       heldBy: 1,
       gravity: 0.4,
-      isShooting: false
+      lastShooter: 1
     };
 
     function drawCourt() {
       ctx.fillStyle = "#4caf50";
       ctx.fillRect(0, court.floorHeight, court.width, 50);
-
       ctx.fillStyle = "#000";
       ctx.fillRect(hoop.x, hoop.y, hoop.width, hoop.height);
     }
@@ -81,6 +78,10 @@
       ctx.fillStyle = "orange";
       ctx.fill();
       ctx.closePath();
+    }
+
+    function distance(x1, y1, x2, y2) {
+      return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
     }
 
     function updatePlayers() {
@@ -116,7 +117,7 @@
           ball.vx *= -1;
         }
 
-        // Score check
+        // Hoop score check
         if (
           ball.x > hoop.x &&
           ball.x < hoop.x + hoop.width &&
@@ -139,13 +140,37 @@
       }
     }
 
+    function tryPickup(player, playerNum) {
+      if (ball.heldBy === null) {
+        const dist = distance(player.x + playerWidth / 2, player.y, ball.x, ball.y);
+        if (dist < 50 && ball.y + ball.radius >= court.floorHeight - 10) {
+          ball.heldBy = playerNum;
+          ball.vx = 0;
+          ball.vy = 0;
+        }
+      }
+    }
+
+    function trySteal(stealer, stealerNum, otherPlayer, otherNum) {
+      if (ball.heldBy === otherNum) {
+        const dist = distance(
+          stealer.x + playerWidth / 2,
+          stealer.y,
+          otherPlayer.x + playerWidth / 2,
+          otherPlayer.y
+        );
+        if (dist < 50) {
+          ball.heldBy = stealerNum;
+        }
+      }
+    }
+
     function resetBall() {
       ball.x = player1.x + playerWidth / 2;
       ball.y = player1.y;
       ball.vx = 0;
       ball.vy = 0;
       ball.heldBy = 1;
-      ball.isShooting = false;
     }
 
     function updateScoreboard() {
@@ -172,10 +197,13 @@
       switch (e.key) {
         case "a": player1.left = true; break;
         case "d": player1.right = true; break;
+        case "w": shoot(1); break;
+        case "s": trySteal(player1, 1, player2, 2); tryPickup(player1, 1); break;
+
         case "ArrowLeft": player2.left = true; break;
         case "ArrowRight": player2.right = true; break;
-        case "w": shoot(1); break;
         case "ArrowUp": shoot(2); break;
+        case "ArrowDown": trySteal(player2, 2, player1, 1); tryPickup(player2, 2); break;
       }
     });
 
@@ -190,60 +218,6 @@
 
     resetBall();
     gameLoop();
-    function distance(p1x, p1y, p2x, p2y) {
-  return Math.sqrt((p1x - p2x) ** 2 + (p1y - p2y) ** 2);
-}
-
-function tryPickup(player, playerNum) {
-  if (ball.heldBy === null) {
-    const dist = distance(player.x + playerWidth / 2, player.y, ball.x, ball.y);
-    if (dist < 50 && ball.y + ball.radius >= court.floorHeight - 10) {
-      ball.heldBy = playerNum;
-      ball.vx = 0;
-      ball.vy = 0;
-    }
-  }
-}
-
-function trySteal(stealer, stealerNum, otherPlayer, otherNum) {
-  if (ball.heldBy === otherNum) {
-    const dist = distance(
-      stealer.x + playerWidth / 2,
-      stealer.y,
-      otherPlayer.x + playerWidth / 2,
-      otherPlayer.y
-    );
-    if (dist < 50) {
-      ball.heldBy = stealerNum;
-    }
-  }
-}
-
-// Updated controls
-document.addEventListener("keydown", (e) => {
-  switch (e.key) {
-    // Player 1
-    case "a": player1.left = true; break;
-    case "d": player1.right = true; break;
-    case "w": shoot(1); break;
-    case "s": trySteal(player1, 1, player2, 2); tryPickup(player1, 1); break;
-
-    // Player 2
-    case "ArrowLeft": player2.left = true; break;
-    case "ArrowRight": player2.right = true; break;
-    case "ArrowUp": shoot(2); break;
-    case "ArrowDown": trySteal(player2, 2, player1, 1); tryPickup(player2, 2); break;
-  }
-});
-
-document.addEventListener("keyup", (e) => {
-  switch (e.key) {
-    case "a": player1.left = false; break;
-    case "d": player1.right = false; break;
-    case "ArrowLeft": player2.left = false; break;
-    case "ArrowRight": player2.right = false; break;
-  }
-});
   </script>
 </body>
 </html>
