@@ -190,6 +190,60 @@
 
     resetBall();
     gameLoop();
+    function distance(p1x, p1y, p2x, p2y) {
+  return Math.sqrt((p1x - p2x) ** 2 + (p1y - p2y) ** 2);
+}
+
+function tryPickup(player, playerNum) {
+  if (ball.heldBy === null) {
+    const dist = distance(player.x + playerWidth / 2, player.y, ball.x, ball.y);
+    if (dist < 50 && ball.y + ball.radius >= court.floorHeight - 10) {
+      ball.heldBy = playerNum;
+      ball.vx = 0;
+      ball.vy = 0;
+    }
+  }
+}
+
+function trySteal(stealer, stealerNum, otherPlayer, otherNum) {
+  if (ball.heldBy === otherNum) {
+    const dist = distance(
+      stealer.x + playerWidth / 2,
+      stealer.y,
+      otherPlayer.x + playerWidth / 2,
+      otherPlayer.y
+    );
+    if (dist < 50) {
+      ball.heldBy = stealerNum;
+    }
+  }
+}
+
+// Updated controls
+document.addEventListener("keydown", (e) => {
+  switch (e.key) {
+    // Player 1
+    case "a": player1.left = true; break;
+    case "d": player1.right = true; break;
+    case "w": shoot(1); break;
+    case "s": trySteal(player1, 1, player2, 2); tryPickup(player1, 1); break;
+
+    // Player 2
+    case "ArrowLeft": player2.left = true; break;
+    case "ArrowRight": player2.right = true; break;
+    case "ArrowUp": shoot(2); break;
+    case "ArrowDown": trySteal(player2, 2, player1, 1); tryPickup(player2, 2); break;
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  switch (e.key) {
+    case "a": player1.left = false; break;
+    case "d": player1.right = false; break;
+    case "ArrowLeft": player2.left = false; break;
+    case "ArrowRight": player2.right = false; break;
+  }
+});
   </script>
 </body>
 </html>
